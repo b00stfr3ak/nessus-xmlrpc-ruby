@@ -4,23 +4,23 @@
 # Author:: Vlatko Kosturjak
 #
 # (C) Vlatko Kosturjak, Kost. Distributed under GPL and BSD license (dual).
-# 
-# == What is this library? 
-# 
-# This library is used for communication with Nessus over XML RPC interface. 
-# You can start, stop, pause and resume scan. Watch progress and status of scan, 
+#
+# == What is this library?
+#
+# This library is used for communication with Nessus over XML RPC interface.
+# You can start, stop, pause and resume scan. Watch progress and status of scan,
 # download report, etc.
 #
 # == Requirements
-# 
-# Required libraries are standard Ruby libraries: uri, net/https and rexml/document. 
+#
+# Required libraries are standard Ruby libraries: uri, net/https and rexml/document.
 #
 # == Optional
-# 
+#
 # Library is able to use nokogiri if available, but nokogiri is not required.
-# 
+#
 # == Usage:
-# 
+#
 #  require 'nessus-xmlrpc'
 #  n=NessusXMLRPC::NessusXMLRPC.new('https://localhost:8834','user','pass');
 #  if n.logged_in
@@ -40,9 +40,9 @@ require 'net/https'
 require 'rexml/document'
 
 # NessusXMLRPC module
-# 
+#
 # Usage:
-# 
+#
 #  require 'nessus-xmlrpc'
 #  n=NessusXMLRPC::NessusXMLRPC.new('https://localhost:8834','user','pass');
 #  if n.logged_in
@@ -51,19 +51,19 @@ require 'rexml/document'
 #	puts "status: " + n.scan_status(uid)
 #  end
 #
-# Check NessusXMLRPCrexml for description of methods implemented 
+# Check NessusXMLRPCrexml for description of methods implemented
 # (for both NessusXMLRPCnokogiri and NessusXMLRPCrexml).
 
-module NessusXMLRPC 
+module NessusXMLRPC
 
-# Class which uses standard REXML to parse nessus XML RPC replies. 
+# Class which uses standard REXML to parse nessus XML RPC replies.
 # It is adviseable to use NessusXMLRPC class, not this class directly.
 # As NessusXMLRPC class will use nokogiri or rexml, depending on availability.
 class NessusXMLRPCrexml
 	# initialize object: try to connect to Nessus Scanner using URL, user and password
 	#
-	# Usage: 
-	# 
+	# Usage:
+	#
 	#  n=NessusXMLRPC::NessusXMLRPC.new('https://localhost:8834','user','pass');
 	def initialize(url,user,password)
 		if url == ''
@@ -83,8 +83,8 @@ class NessusXMLRPCrexml
 	#
 	# returns: true if logged in, false if not
 	#
-	# Usage: 
-	# 
+	# Usage:
+	#
 	#  n=NessusXMLRPC::NessusXMLRPC.new('https://localhost:8834','user','pass');
 	#  if n.logged_in
 	#	puts "Logged in"
@@ -97,23 +97,23 @@ class NessusXMLRPCrexml
 		else
 			return true
 		end
-	end	
+	end
 
 	# send standard Nessus XML request and check
-	# 
+	#
 	# returns: rexml/document root
-	def nessus_request(uri, post_data) 
+	def nessus_request(uri, post_data)
 		body=nessus_http_request(uri, post_data)
 		# puts response.body
 		docxml = REXML::Document.new(body)
-		begin 
+		begin
 		status = docxml.root.elements['status'].text
 		rescue
 			puts "[e] error in XML parsing"
 		end
 		if status == "OK"
-			return docxml 
-		else 
+			return docxml
+		else
 			return ''
 		end
 	end
@@ -121,11 +121,11 @@ class NessusXMLRPCrexml
 	# send standard Nessus HTTP request and check
 	#
 	# returns: body of response
-	def nessus_http_request(uri, post_data) 
-		url = URI.parse(@nurl + uri) 
+	def nessus_http_request(uri, post_data)
+		url = URI.parse(@nurl + uri)
 		request = Net::HTTP::Post.new( url.path )
 		request.set_form_data( post_data )
-		if not defined? @https	
+		if not defined? @https
 			@https = Net::HTTP.new( url.host, url.port )
 			@https.use_ssl = true
 			@https.verify_mode = OpenSSL::SSL::VERIFY_NONE
@@ -133,7 +133,7 @@ class NessusXMLRPCrexml
 		# puts request
 		begin
 			response = @https.request( request )
-		rescue 
+		rescue
 			puts "[e] error connecting to server: "+ @nurl + " with URI: " + uri
 
 			exit
@@ -141,12 +141,12 @@ class NessusXMLRPCrexml
 		# puts response.body
 		return response.body
 	end
-	
+
 	# login with user & password and sets object-wide @token, @name and @admin
 	def login(user, password)
 		post = { "login" => user, "password" => password }
 		docxml=nessus_request('login', post)
-		if docxml == '' 
+		if docxml == ''
 			@token=''
 		else
 			@token = docxml.root.elements['contents'].elements['token'].text
@@ -154,15 +154,15 @@ class NessusXMLRPCrexml
 			@admin = docxml.root.elements['contents'].elements['user'].elements['admin'].text
 			# puts "Got token:" + @token
 		end
-			
+
 	end
-	
+
 	# initiate new scan with policy id, descriptive name and list of targets
-	# 
+	#
 	# returns: uuid of scan
-	# 
-	# Usage: 
-	# 
+	#
+	# Usage:
+	#
 	#  n=NessusXMLRPC::NessusXMLRPC.new('https://localhost:8834','user','pass');
 	#  if n.logged_in
 	# 	id,name = n.policy_get_first
@@ -170,21 +170,21 @@ class NessusXMLRPCrexml
 	# 	uid=n.scan_new(id,"textxmlrpc","127.0.0.1")
 	#  end
 	def scan_new(policy_id,scan_name,target)
-		post= { "token" => @token, "policy_id" => policy_id, "scan_name" => scan_name, "target" => target } 
+		post= { "token" => @token, "policy_id" => policy_id, "scan_name" => scan_name, "target" => target }
 		docxml=nessus_request('scan/new', post)
-		if docxml == '' 
+		if docxml == ''
 			return ''
 		else
 			uuid=docxml.root.elements['contents'].elements['scan'].elements['uuid'].text
 			return uuid
-		end	
+		end
 	end
 
 	# get uids of scans
 	#
 	# returns: array of uids of active scans
 	def scan_list_uids
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('scan/list', post)
 		uuids=Array.new
 		docxml.root.elements['contents'].elements['scans'].elements['scanList'].each_element('//scan') {|scan| uuids.push(scan.elements['uuid'].text) }
@@ -192,70 +192,70 @@ class NessusXMLRPCrexml
 	end
 
 	# get hash of active scan data
-	# 
+	#
 	# returns: array of hash of active scans
 	def scan_list_hash
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('scan/list', post)
 		scans=Array.new
-		docxml.root.elements['contents'].elements['scans'].elements['scanList'].each_element('//scan') {|scan| 
+		docxml.root.elements['contents'].elements['scans'].elements['scanList'].each_element('//scan') {|scan|
 			entry=Hash.new
 			entry['id']=scan.elements['uuid'].text
 			entry['name']=scan.elements['readableName'].text
 			entry['current']=scan.elements['completion_current'].text;
-			entry['total']=scan.elements['completion_total'].text;		
-			scans.push(entry) 
+			entry['total']=scan.elements['completion_total'].text;
+			scans.push(entry)
 		}
 		return scans
 	end
 
 	# get policy by textname and return policyID
-	# 
+	#
 	# returns: policyID
-	def policy_get_id(textname) 
-		post= { "token" => @token } 
+	def policy_get_id(textname)
+		post= { "token" => @token }
 		docxml=nessus_request('policy/list', post)
 		docxml.root.elements['contents'].elements['policies'].each_element('//policy') {|policy|
 			if policy.elements['policyName'].text == textname
-				return policy.elements['policyID'].text 
+				return policy.elements['policyID'].text
 			end
 		}
 		return ''
-	end	
+	end
 
 	# get first policy from server and returns: policyID, policyName
 	#
 	# returns: policyID, policyName
 	def policy_get_first
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('policy/list', post)
 		docxml.root.elements['contents'].elements['policies'].each_element('//policy') {|policy|
 				return policy.elements['policyID'].text, policy.elements['policyName'].text
 		}
-	end	
+	end
 
 	# get list of policy IDs
 	#
 	# returns: array of all policy uids
 	def policy_list_uids
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('policy/list', post)
 		pids=Array.new
-		docxml.root.elements['contents'].elements['policies'].each_element('//policy') { |policy| 
+		docxml.root.elements['contents'].elements['policies'].each_element('//policy') { |policy|
 			pids.push(policy.elements['policyID'].text) }
 		return pids
 	end
 
 	# stop scan identified by scan_uuid
 	def scan_stop(uuid)
-		post= { "token" => @token, "scan_uuid" => uuid } 
+		post= { "token" => @token, "scan_uuid" => uuid }
 		docxml=nessus_request('scan/stop', post)
 		return docxml
 	end
-	# stop all active scans 
-	# 
-	# Usage: 
-	# 
+	# stop all active scans
+	#
+	# Usage:
+	#
 	#  n=NessusXMLRPC::NessusXMLRPC.new('https://localhost:8834','user','pass');
 	#  if n.logged_in
 	#	n.scan_stop_all
@@ -269,14 +269,14 @@ class NessusXMLRPCrexml
 	end
 	# pause scan identified by scan_uuid
 	def scan_pause(uuid)
-		post= { "token" => @token, "scan_uuid" => uuid } 
+		post= { "token" => @token, "scan_uuid" => uuid }
 		docxml=nessus_request('scan/pause', post)
 		return docxml
 	end
-	# pause all active scans 
-	# 
-	# Usage: 
-	# 
+	# pause all active scans
+	#
+	# Usage:
+	#
 	#  n=NessusXMLRPC::NessusXMLRPC.new('https://localhost:8834','user','pass');
 	#  if n.logged_in
 	#	n.scan_pause_all
@@ -290,14 +290,14 @@ class NessusXMLRPCrexml
 	end
 	# remove scan identified by uuid
 	def scan_resume(uuid)
-		post= { "token" => @token, "scan_uuid" => uuid } 
+		post= { "token" => @token, "scan_uuid" => uuid }
 		docxml=nessus_request('scan/resume', post)
 		return docxml
 	end
-	# resume all active scans 
-	# 
-	# Usage: 
-	# 
+	# resume all active scans
+	#
+	# Usage:
+	#
 	#  n=NessusXMLRPC::NessusXMLRPC.new('https://localhost:8834','user','pass');
 	#  if n.logged_in
 	#	n.scan_resume_all
@@ -312,7 +312,7 @@ class NessusXMLRPCrexml
 
 	# check status of scan identified by uuid
 	def scan_status(uuid)
-		post= { "token" => @token, "report" => uuid } 
+		post= { "token" => @token, "report" => uuid }
 		docxml=nessus_request('report/list', post)
 		docxml.root.elements['contents'].elements['reports'].each_element('//report') { |report|
 			if report.elements['name'].text == uuid
@@ -331,35 +331,35 @@ class NessusXMLRPCrexml
 			return false
 		end
 	end
-	
+
   # get an XML file that lists all the reports
   def reports_list
     post= { "token" => @token }
     file=nessus_http_request('report/list', post)
-    return file 
+    return file
   end
-	
+
   # get report by reportID and return XML file
-	# 
+	#
 	# returns: XML file of report (nessus v2 format)
 	def report_file_download(id)
-		post= { "token" => @token, "report" => id } 
+		post= { "token" => @token, "report" => id }
 		file=nessus_http_request('file/report/download', post)
 		return file
 	end
 
 	# get report by reportID and return XML file (version 1)
-	# 
+	#
 	# returns: XML file of report (nessus v1 format)
 	def report_file1_download(id)
-		post= { "token" => @token, "report" => id, "v1" => "true" } 
+		post= { "token" => @token, "report" => id, "v1" => "true" }
 		file=nessus_http_request('file/report/download', post)
 		return file
 	end
-	
+
 	# delete report by report ID
 	def report_delete(id)
-		post= { "token" => @token, "report" => id } 
+		post= { "token" => @token, "report" => id }
 		docxml=nessus_request('report/delete', post)
 		return docxml
 	end
@@ -368,7 +368,7 @@ class NessusXMLRPCrexml
 	#
 	# returns: array of names
 	def policy_list_names
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('policy/list', post)
 		list = Array.new
 		docxml.root.elements['contents'].elements['policies'].each_element('//policy') {|policy|
@@ -377,14 +377,26 @@ class NessusXMLRPCrexml
 		return list
 	end
 
+  def policy_list_uids_and_names
+    final_hash = {}
+		post= { "token" => @token }
+		docxml=nessus_request('policy/list', post)
+		docxml.root.elements['contents'].elements['policies'].each_element('//policy') {|policy|
+        name = policy.elements['policyName'].text
+        uid =  policy.elements['policyID'].text
+        final_hash[uid] = name
+    }
+    final_hash
+  end
+
 	# get hosts for particular report
 	#
 	# returns: array of hosts
 	def report_hosts(report_id)
-		post= { "token" => @token, "report" => report_id } 
+		post= { "token" => @token, "report" => report_id }
 		docxml=nessus_request('report/hosts', post)
 		list = Array.new
-		docxml.root.elements['contents'].elements['hostList'].each_element('//host') { |host| 
+		docxml.root.elements['contents'].elements['hostList'].each_element('//host') { |host|
 			list.push host.elements['hostname'].text
 		}
 		return list
@@ -394,9 +406,9 @@ class NessusXMLRPCrexml
 	#
 	# returns: severity, current, total
 	def report_get_host(report_id,host)
-		post= { "token" => @token, "report" => report_id } 
+		post= { "token" => @token, "report" => report_id }
 		docxml=nessus_request('report/hosts', post)
-		docxml.root.elements['contents'].elements['hostList'].each_element('//host') { |host| 
+		docxml.root.elements['contents'].elements['hostList'].each_element('//host') { |host|
 			if host.elements['hostname'].text == host
 				retval={}
 				retval["severity"] = host.elements['severity'].text
@@ -408,12 +420,12 @@ class NessusXMLRPCrexml
 	end
 	#-- ToDo items
 	def plugins_list
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('plugins/list', post)
 		return docxml
 	end
 	def users_list
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('users/list', post)
 		return docxml
 	end
@@ -429,27 +441,27 @@ end
 
 # if found nokogiri
 if nokogiri
-# Class which uses nokogiri to parse nessus XML RPC replies. 
+# Class which uses nokogiri to parse nessus XML RPC replies.
 # It is adviseable to use NessusXMLRPC class, not this class directly.
 # As NessusXMLRPC class will use nokogiri or rexml, depending on availability.
-# 
+#
 # Documentation for this class documents only differences from NessusXMLRPCrexml.
 # <b> So, check NessusXMLRPCrexml for method documentation </b>
 class NessusXMLRPCnokogiri < NessusXMLRPCrexml
 	# send standard Nessus XML request and check
 	#
 	# return: nokogiri XML file
-	def nessus_request(uri, post_data) 
+	def nessus_request(uri, post_data)
 		body=nessus_http_request(uri, post_data)
 		docxml = Nokogiri::XML.parse(body)
-		begin 
+		begin
 		status = docxml.xpath("/reply/status").collect(&:text)[0]
 		rescue
 			puts "[e] error in XML parsing"
 		end
 		if status == "OK"
-			return docxml 
-		else 
+			return docxml
+		else
 			return ''
 		end
 	end
@@ -457,41 +469,41 @@ class NessusXMLRPCnokogiri < NessusXMLRPCrexml
 	def login(user, password)
 		post = { "login" => user, "password" => password }
 		docxml=nessus_request('login', post)
-		if docxml == '' 
+		if docxml == ''
 			@token=''
 		else
 			@token = docxml.xpath("/reply/contents/token").collect(&:text)[0]
 			@name = docxml.xpath("/reply/contents/user/name").collect(&:text)[0]
 			@admin = docxml.xpath("/reply/contents/user/admin").collect(&:text)[0]
 		end
-			
+
 	end
 
 	def scan_new(policy_id,scan_name,target)
-		post= { "token" => @token, "policy_id" => policy_id, "scan_name" => scan_name, "target" => target } 
+		post= { "token" => @token, "policy_id" => policy_id, "scan_name" => scan_name, "target" => target }
 		docxml=nessus_request('scan/new', post)
-		if docxml == '' 
+		if docxml == ''
 			return ''
 		else
 			uuid=docxml.xpath("/reply/contents/scan/uuid").collect(&:text)[0]
 			return uuid
-		end	
+		end
 	end
 
 	def scan_status(uuid)
-		post= { "token" => @token, "report" => uuid } 
+		post= { "token" => @token, "report" => uuid }
 		docxml=nessus_request('report/list', post)
 		return docxml.xpath("/reply/contents/reports/report/name[text()='"+uuid+"']/../status").collect(&:text)[0]
 	end
 
 	def scan_list_uids
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('scan/list', post)
 		return docxml.xpath("/reply/contents/scans/scanList/scan/uuid").collect(&:text)
 	end
 
 	def scan_list_hash
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('scan/list', post)
 		items = docxml.xpath("/reply/contents/scans/scanList/scan")
 		retval = items.collect do |item|
@@ -509,47 +521,56 @@ class NessusXMLRPCnokogiri < NessusXMLRPCrexml
 		return retval
 	end
 
-	def policy_get_id(textname) 
-		post= { "token" => @token } 
+	def policy_get_id(textname)
+		post= { "token" => @token }
 		docxml=nessus_request('policy/list', post)
     return docxml.xpath("/reply/contents/policies/policy[policyName='"+textname+"']/policyID").collect(&:text)
-	end	
+	end
 
 	def policy_list_uids
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('policy/list', post)
 		return docxml.xpath("/reply/contents/policies/policy/policyID").collect(&:text)
 	end
 
 	def policy_get_first
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('policy/list', post)
 		id=docxml.xpath("/reply/contents/policies/policy/policyID").collect(&:text)[0]
 		name=docxml.xpath("/reply/contents/policies/policy/policyName").collect(&:text)[0]
 		return id, name
-	end	
+	end
 
 	def policy_list_names
-		post= { "token" => @token } 
+		post= { "token" => @token }
 		docxml=nessus_request('policy/list', post)
 		return docxml.xpath("/reply/contents/policies/policy/policyName").collect(&:text)
 	end
 
+  def policy_list_uids_and_names
+    final_hash = {}
+		post= { "token" => @token }
+		docxml=nessus_request('policy/list', post)
+		name_array = docxml.xpath("/reply/contents/policies/policy/policyName").collect(&:text)
+		uid_array = docxml.xpath("/reply/contents/policies/policy/policyID").collect(&:text)
+    uid_array.each_with_index {|uid,index| final_hash[uid] = name_array[index]}
+    final_hash
+  end
   # get an XML file that lists all the reports
   def reports_list
     post= { "token" => @token }
     file=nessus_http_request('report/list', post)
-    return file 
+    return file
   end
-	
+
   def report_hosts(report_id)
-		post= { "token" => @token, "report" => report_id } 
+		post= { "token" => @token, "report" => report_id }
 		docxml=nessus_request('report/hosts', post)
 		return docxml.xpath("/reply/contents/hostList/host/hostname").collect(&:text)
 	end
 
 	def report_get_host(report_id,host)
-		post= { "token" => @token, "report" => report_id } 
+		post= { "token" => @token, "report" => report_id }
 		docxml=nessus_request('report/hosts', post)
 		items = docxml.xpath("/reply/contents/hostList/host/hostname[text()='"+host+"']")
 		retval = items.collect do |item|
@@ -565,23 +586,23 @@ class NessusXMLRPCnokogiri < NessusXMLRPCrexml
 		end
 		return retval
 	end
-		
+
 end # end of NessusXMLRPCnokogiri::Class
-	# Main class which controls Nessus using XMLRPC. 
+	# Main class which controls Nessus using XMLRPC.
 	# It is adviseable to use this NessusXMLRPC class, and not NessusXMLRPCnokogiri or NessusXMLRPCrexml,
-	# As NessusXMLRPC class will use nokogiri or rexml, depending on availability. 
+	# As NessusXMLRPC class will use nokogiri or rexml, depending on availability.
 	# Of course, choosing nokogiri first because of speed.
-	# 
+	#
 	# Example:
-	# 
+	#
 	#  n=NessusXMLRPC::NessusXMLRPC.new('https://localhost:8834','user','pass');
 	#  if n.logged_in
 	# 	id,name = n.policy_get_first
 	# 	uid=n.scan_new(id,"textxmlrpc","127.0.0.1")
 	#	puts "status: " + n.scan_status(uid)
 	#  end
-	# 
-	# Check NessusXMLRPCrexml for description of methods implemented 
+	#
+	# Check NessusXMLRPCrexml for description of methods implemented
 	# (for both NessusXMLRPCnokogiri and NessusXMLRPCrexml).
 	class NessusXMLRPC < NessusXMLRPCnokogiri
 	end
